@@ -39,6 +39,9 @@ var svg = d3.select("body").append("svg")
     .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
 function click(d) {
+  //Hide text while Sunburst transitions
+  text.transition().attr("opacity", 0);
+
   svg.transition()
       .duration(750)
       .tween("scale", function() {
@@ -48,7 +51,25 @@ function click(d) {
         return function(t) { x.domain(xd(t)); y.domain(yd(t)).range(yr(t)); };
       })
     .selectAll("path")
-      .attrTween("d", function(d) { return function() { return arc(d); }; });
+    .attrTween("d", function(d) { return function() { return arc(d); }; })
+     .on("end", function(e, i) {
+        // Check if the animated element's data e lies within the visible
+        // angle span given in d:
+        if (e.x0 >= d.x0 && e.x0 < d.x1) {
+            // get a selection of the associated text element
+            var arcText = d3.select(this.parentNode).select("text");
+            // fade in the text element and recalculate positions
+            arcText.transition().duration(750)
+                .attr("opacity", 1)
+
+                .attr("transform", function() { return "rotate(" +
+    computeTextRotation(e) + ")" })
+                .attr("x", function(d) { return y(d.y0); })
+                .text(function(d) {
+                    return d.data.name
+                });
+        };
+  });
 }
 
 d3.select(self.frameElement).style("height", height + "px");
@@ -69,17 +90,18 @@ d3.text('data.txt', function(error, raw){
 
   root.sum(function(d) { return d.size; });
 
-  svg.selectAll("path")
+  g = svg.selectAll("path")
   .data(partition(root).descendants())
-    .enter().append("path")
+    .enter().append("g");
+
+  path = g.append("path")
       .attr("d", arc)
       .style("fill", function(d) { return color((d.children ? d : d.parent).data.name); })
       .on("click", click)
     .append("title")
       .text(function(d) { return d.data.name });
 
-  text = svg.selectAll("path")
-    .append("text")
+  text = g.append("text")
       .style("fill", "rgba(0, 0, 0, 255)")
       .attr("class", "label")
       .attr("transform", function(d) {
@@ -103,12 +125,12 @@ d3.text('data.txt', function(error, raw){
         return (rotation > 90 && rotation < 270) ? -6 : 6;
       })
       .attr("dy", ".35em") // vertical-align
-      .append("tspan")
-        .attr("x", 0)
+      //.append("tspan")
+      //  .attr("x", 0)
         .text(function(d) {
-          return /*d.data.name === "root" ? "" : */d.data.name
-      });
-});
+          return d.data.name
+        });
+  });
 
 function computeTextRotation(d) {
   var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
@@ -120,6 +142,7 @@ function tree(nodes) {
   var lev = 1;
 
   nodes.forEach(function(d) {
+    size = 0;
     if (!root) {
       // handle root (first node)
       curr = {
@@ -141,16 +164,20 @@ function tree(nodes) {
         lev = lev-1;
         parent = parent.parent;
 
-      } else if (!d['d' + lev]) {
+      } if (d['d' + lev]) {
+        // handle siblings
+        size = 1;
+
+      } else {
         // if it's neither child, nor moving up, nor a sibling, handle exception
         throw "unhandled tree level";
       }
 
       curr = {
         name:     d['d' + lev],
-        size:     100,
         children: []
       };
+      if (size) { curr.size = size; }
       curr.parent = parent;
       parent.children.push(curr);
     }
