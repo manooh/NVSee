@@ -68,16 +68,52 @@ d3.text('data.txt', function(error, raw){
   root = d3.hierarchy(root);
 
   root.sum(function(d) { return d.size; });
+
   svg.selectAll("path")
-      .data(partition(root).descendants())
+  .data(partition(root).descendants())
     .enter().append("path")
       .attr("d", arc)
       .style("fill", function(d) { return color((d.children ? d : d.parent).data.name); })
       .on("click", click)
     .append("title")
       .text(function(d) { return d.data.name });
+
+  text = svg.selectAll("path")
+    .append("text")
+      .style("fill", "rgba(0, 0, 0, 255)")
+      .attr("class", "label")
+      .attr("transform", function(d) {
+         var rotation = computeTextRotation(d);
+         var translation = y(d.y0);
+         if (rotation > 90 && rotation < 270) {
+           rotation = rotation + 180;
+           translation = -translation - 13;
+         }
+         return (
+           "rotate(" + rotation + ")" +
+           "translate(" + translation + ",0)"
+         );
+      })
+      .attr("text-anchor", function(d) {
+        var rotation = computeTextRotation(d);
+        return (rotation > 90 && rotation < 270) ? "end" : "start";
+      })
+      .attr("dx", function(d) {
+        var rotation = computeTextRotation(d);
+        return (rotation > 90 && rotation < 270) ? -6 : 6;
+      })
+      .attr("dy", ".35em") // vertical-align
+      .append("tspan")
+        .attr("x", 0)
+        .text(function(d) {
+          return /*d.data.name === "root" ? "" : */d.data.name
+      });
 });
 
+function computeTextRotation(d) {
+  var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
+  return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
+}
 
 function tree(nodes) {
   var curr, parent, root;
@@ -88,7 +124,6 @@ function tree(nodes) {
       // handle root (first node)
       curr = {
         name:     d.d1,
-        size:     100,
         children: []
       };
       root   = curr;
