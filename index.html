@@ -88,7 +88,7 @@ d3.text('data.txt', function(error, raw){
 
   root = d3.hierarchy(root);
 
-  root.sum(function(d) { return d.size; });
+  root.sum(function(d) { return 1; }); // each leaf gets a size of 1
 
   g = svg.selectAll("path")
   .data(partition(root).descendants())
@@ -96,8 +96,19 @@ d3.text('data.txt', function(error, raw){
 
   path = g.append("path")
       .attr("d", arc)
-      .style("fill", function(d) { return color((d.children ? d : d.parent).data.name); })
-      .on("click", click)
+      .style("fill", function(d, i) {
+        var c;
+        if (d.depth === 0) {
+          return "white";
+        } else if (d.depth === 1) {
+          c = color((d.children ? d : d.parent).data.name);
+        } else if (d.depth > 1) {
+          c = d3.color(d.parent.data.color).darker();
+        }
+        d.data.color = c;
+        return c;
+      })
+    .on("click", click)
     .append("title")
       .text(function(d) { return d.data.name });
 
@@ -142,7 +153,6 @@ function tree(nodes) {
   var lev = 1;
 
   nodes.forEach(function(d) {
-    size = 0;
     if (!root) {
       // handle root (first node)
       curr = {
@@ -164,11 +174,7 @@ function tree(nodes) {
         lev = lev-1;
         parent = parent.parent;
 
-      } if (d['d' + lev]) {
-        // handle siblings
-        size = 1;
-
-      } else {
+      } else if (!d['d' + lev]) {
         // if it's neither child, nor moving up, nor a sibling, handle exception
         throw "unhandled tree level";
       }
@@ -177,7 +183,6 @@ function tree(nodes) {
         name:     d['d' + lev],
         children: []
       };
-      if (size) { curr.size = size; }
       curr.parent = parent;
       parent.children.push(curr);
     }
