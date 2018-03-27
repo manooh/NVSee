@@ -54,7 +54,7 @@ var texttransform = function(d) {
 
   if (rotation > 90 && rotation < 270) {
     rotation = rotation + 180;
-    translation = -translation - 13;
+    translation = -translation;
   }
   return (
     "rotate(" + rotation + ")" +
@@ -63,7 +63,7 @@ var texttransform = function(d) {
 }
 
 function computeTextRotation(d) {
-  if (d.y0 === 0) {
+  if (d.depth === 0) {
     return 0;
   }
   var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
@@ -71,7 +71,7 @@ function computeTextRotation(d) {
 }
 
 var textanchor = function(d) {
-  if (d.y0 === 0) {
+  if (d.depth === 0) {
     return "middle";
   }
   var rotation = computeTextRotation(d);
@@ -79,7 +79,7 @@ var textanchor = function(d) {
 }
 
 var textdx = function(d) {
-  if (d.y0 === 0) {
+  if (d.depth === 0) {
     return 0;
   }
   var rotation = computeTextRotation(d);
@@ -93,7 +93,11 @@ var svg = d3.select("body").append("svg")
   .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
 function calcFontSize(d) {
-  const xFactor = 12, yFactor = 7 ; // stub
+  const xFactor = 12, yFactor = 7.5 ; // stub
+
+  if (d.depth === 0) {
+    return "30px";
+  }
 
   // use inner arc len as text height delimiter
   var innerArc = (endAngle(d) - startAngle(d)) * 2 * Math.PI * innerRadius(d);
@@ -177,7 +181,12 @@ d3.text('data.txt', function(error, raw){
     .text(function(d) { return d.data.name });
 
   text = g.append("text")
-    .style("fill", "white")
+    .style("fill", function(d) {
+      if (d.depth === 0) {
+        return "#CCC";
+      } else {
+        return "#FFF";
+      }})
     .attr("class", "svglabel")
 
     .attr("transform",   texttransform)
