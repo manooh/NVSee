@@ -6,7 +6,6 @@
 <style>
 .svglabel {
   font-family: sans-serif;
-  font-size: .8em;
   pointer-events: none;
 }
 </style>
@@ -20,6 +19,7 @@
 // http://bl.ocks.org/mbostock/910126
 // https://www.jasondavies.com/coffee-wheel/
 // https://gist.github.com/denjn5/00a57e89c67906897b6eede56219170e
+// https://bl.ocks.org/mbostock/1846692
 
 var width = 960,
   height = 700,
@@ -46,6 +46,7 @@ var arc = d3.arc()
 var texttransform = function(d) {
   var translation = y(d.y0);
   var rotation = computeTextRotation(d);
+
   if (rotation > 90 && rotation < 270) {
     rotation = rotation + 180;
     translation = -translation - 13;
@@ -56,12 +57,29 @@ var texttransform = function(d) {
   );
 }
 
+
+function computeTextRotation(d) {
+  if (d.y0 === 0) {
+    return 0;
+  }
+  var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
+  return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
+}
+
 var textanchor = function(d) {
-  if (d.depth === 0) {
+  if (d.y0 === 0) {
     return "middle";
   }
   var rotation = computeTextRotation(d);
   return (rotation > 90 && rotation < 270) ? "end" : "start";
+}
+
+var textdx = function(d) {
+  if (d.y0 === 0) {
+    return 0;
+  }
+  var rotation = computeTextRotation(d);
+  return (rotation > 90 && rotation < 270) ? -6 : 6;
 }
 
 var svg = d3.select("body").append("svg")
@@ -71,7 +89,10 @@ var svg = d3.select("body").append("svg")
   .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
 function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
-  trans = svg.transition().duration(750)
+  trans = svg.transition().duration(750);
+
+  trans.selectAll("path")
+    .attrTween("d", function(n) { return function() { return arc(n); }; })
     .tween("scale", function() {
       var xd = d3.interpolate(x.domain(), [d.x0, d.x1]),
       yd = d3.interpolate(y.domain(), [d.y0, 1]),
@@ -83,12 +104,11 @@ function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
       };
     });
 
-  trans.selectAll("path")
-    .attrTween("d", function(n) { return function() { return arc(n); }; });
-
     trans.selectAll("text")
       .attrTween("transform",   function(n) { return function() { return texttransform(n); }; })
-      .attrTween("text-anchor", function(n) { return function() { return textanchor(n); }; });
+      .attrTween("text-anchor", function(n) { return function() { return textanchor(n); }; })
+      .attrTween("dx",          function(n) { return function() { return textdx(n); }; });
+      //.attrTween("font-size", function(n) { return function() { return textfontsize(n); }; });
 
     trans.selectAll("text")
       .delay(400)
@@ -146,25 +166,16 @@ d3.text('data.txt', function(error, raw){
     .style("fill", "black")
     .attr("class", "svglabel")
 
-    .attr("transform", texttransform)
+    .attr("transform",   texttransform)
     .attr("text-anchor", textanchor)
-    .attr("dx", function(d) {
-      var rotation = computeTextRotation(d);
-      return (rotation > 90 && rotation < 270) ? -6 : 6;
-    })
-    .attr("dy", ".35em"); // vertical-align
-
-  tspan = text.append("tspan")
-    .attr("x", 0)
-    .text(function(d) {
-      return d.data.name
-    });
-});
-
-function computeTextRotation(d) {
-  var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
-  return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
-}
+    .attr("dx",  textdx)
+    .attr("dy", ".35em") // vertical-align
+    .text(function(d) { return d.data.name; })
+    .style("font-size", function(d) {
+        var len = (d.y1-d.y0) * radius;
+        return Math.min(10, len / this.getComputedTextLength() * 14) + "px";
+      });
+  });
 
 function tree(nodes) {
   var curr, parent, root;
