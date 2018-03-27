@@ -37,11 +37,16 @@ var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var partition = d3.partition();
 
+function startAngle(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); }
+function endAngle(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); }
+function innerRadius(d) { return Math.max(0, y(d.y0)); }
+function outerRadius(d) { return Math.max(0, y(d.y1)); }
+
 var arc = d3.arc()
-  .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); })
-  .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); })
-  .innerRadius(function(d) { return Math.max(0, y(d.y0)); })
-  .outerRadius(function(d) { return Math.max(0, y(d.y1)); });
+  .startAngle( function(d) { return startAngle(d);  })
+  .endAngle(   function(d) { return endAngle(d);    })
+  .innerRadius(function(d) { return innerRadius(d); })
+  .outerRadius(function(d) { return outerRadius(d); })
 
 var texttransform = function(d) {
   var translation = y(d.y0);
@@ -56,7 +61,6 @@ var texttransform = function(d) {
     "translate(" + translation + ",0)"
   );
 }
-
 
 function computeTextRotation(d) {
   if (d.y0 === 0) {
@@ -88,6 +92,16 @@ var svg = d3.select("body").append("svg")
   .append("g")
   .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
+function calcFontSize(d) {
+  const xFactor = 12, yFactor = 7 ; // stub
+
+  // use inner arc len as text height delimiter
+  var innerArc = (endAngle(d) - startAngle(d)) * 2 * Math.PI * innerRadius(d);
+
+  var len = (d.y1-d.y0) * radius;
+  return Math.min(innerArc / yFactor, len / d.data.textlen * xFactor) + "px";
+}
+
 function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
   trans = svg.transition().duration(750);
 
@@ -107,8 +121,8 @@ function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
     trans.selectAll("text")
       .attrTween("transform",   function(n) { return function() { return texttransform(n); }; })
       .attrTween("text-anchor", function(n) { return function() { return textanchor(n); }; })
-      .attrTween("dx",          function(n) { return function() { return textdx(n); }; });
-      //.attrTween("font-size", function(n) { return function() { return textfontsize(n); }; });
+      .attrTween("dx",          function(n) { return function() { return textdx(n); }; })
+      .styleTween("font-size",  function(n) { return function() { return calcFontSize(n); }; });
 
     trans.selectAll("text")
       .delay(400)
@@ -163,7 +177,7 @@ d3.text('data.txt', function(error, raw){
     .text(function(d) { return d.data.name });
 
   text = g.append("text")
-    .style("fill", "black")
+    .style("fill", "white")
     .attr("class", "svglabel")
 
     .attr("transform",   texttransform)
@@ -172,8 +186,9 @@ d3.text('data.txt', function(error, raw){
     .attr("dy", ".35em") // vertical-align
     .text(function(d) { return d.data.name; })
     .style("font-size", function(d) {
-        var len = (d.y1-d.y0) * radius;
-        return Math.min(10, len / this.getComputedTextLength() * 14) + "px";
+        // hack. save text len as property to make accessible in transiton
+        d.data.textlen = this.getComputedTextLength();
+        return calcFontSize(d);
       });
   });
 
