@@ -139,7 +139,7 @@ function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
       }; });
 }
 
-d3.text('data.txt', function(error, raw){
+d3.text('data/feelings_EN.txt', function(error, raw){
   if (error) throw error;
 
   // replace two-space indentation with pipes
