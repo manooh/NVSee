@@ -7,9 +7,9 @@ Feelings
   Happiness
     blissful
     delighted
-    Ecstatic
-    Happy
-    Hysterical
+    ecstatic
+    happy
+    hysterical
     merry
   Positive attitude
     confident
@@ -36,7 +36,7 @@ Feelings
     quiet
     self-control
     serene
-  Pleasure / Satisfaction / Lust jhgfkjhg
+  Pleasure / Satisfaction
     delighted
     glad
     joyful
@@ -45,7 +45,7 @@ Feelings
     rejoiced
     relieved
   Enthusiasm
-    Determined
+    determined
     enthusiastic
     hopeful
     interested
@@ -65,10 +65,9 @@ Feelings
     frustrated
   Sadness
     grievous
-    melancholy
-    New node
+    melancholic
     pathetic
-    Sad
+    sad
     wretched
   Boredom / Fatigue
     bored
@@ -89,16 +88,16 @@ Feelings
     disapproving
     disgusted
     distasteful
-    Negative
-    Suspicious
+    negative
+    suspicious
   Despair
     desperate
     discouraged
     disheartened
     downhearted
   Jealousy
-    Envious
-    Jealous
+    envious
+    jealous
     eavesdropping
   Anger
     aggressive
