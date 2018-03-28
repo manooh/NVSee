@@ -219,8 +219,11 @@ function tree(nodes) {
         parent = parent.parent;
 
       } else if (!d['d' + lev]) {
-        // if it's neither child, nor moving up, nor a sibling, handle exception
-        throw "unhandled tree level";
+        if (d.d2 || d.d3 || d.d4 || d.d5) {
+          // if it's neither child, nor moving up, nor a sibling, there is something we aren't handling
+          throw "unhandled tree level";
+        } else
+          return; // skip empty lines
       }
 
       curr = {
