@@ -20,5 +20,17 @@ body {
 </style>
 
 <body>
+  <div id="vis_en"></div>
+  <div id="vis_de"></div>
   <script src="js/sunburst.js"></script>
+  <script>
+    var fileLinks = [
+      {id: "vis_en", filename: "data/feelings_EN.txt"},
+      {id: "vis_de", filename: "data/gefuehle.txt"}
+    ];
+
+    fileLinks.forEach(function(l) {
+      createVisualization(l.id, l.filename);
+    });
+  </script>
 </body>

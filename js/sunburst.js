@@ -35,21 +35,21 @@ var arc = d3.arc()
 
 
 ////////// Text helper functions //////////
-function computeTextRotation(d) {
+function computeTextRotation(d, curr) {
   if (d.depth === 0) {
     return 0;
   }
 
   var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
-  if(currentNode === d){
+  if(curr && curr === d){
     angle -= 90;
   }
   return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
 }
 
-var texttransform = function(d) {
+var texttransform = function(d, curr) {
   var translation = y(d.y0);
-  var rotation = computeTextRotation(d);
+  var rotation = computeTextRotation(d, curr);
 
   if (rotation > 90 && rotation < 270) {
     rotation = rotation + 180;
@@ -61,19 +61,19 @@ var texttransform = function(d) {
   );
 }
 
-var textanchor = function(d) {
+var textanchor = function(d, curr) {
   if (d.depth === 0) {
     return "middle";
   }
-  var rotation = computeTextRotation(d);
+  var rotation = computeTextRotation(d, curr);
   return (rotation > 90 && rotation < 270) ? "end" : "start";
 }
 
-var textdx = function(d) {
+var textdx = function(d, curr) {
   if (d.depth === 0) {
     return 0;
   }
-  var rotation = computeTextRotation(d);
+  var rotation = computeTextRotation(d, curr);
   return (rotation > 90 && rotation < 270) ? -6 : 6;
 }
 
@@ -93,9 +93,9 @@ function calcFontSize(d) {
 
 
 ////////// Click Transition //////////
-function click(d) {
+function click(d, svg) {
   var trans = svg.transition().duration(750);
-  currentNode = d;
+  var curr = d;
 
   trans.selectAll("path")
     .attrTween("d", function(n) { return function() { return arc(n); }; })
@@ -111,10 +111,10 @@ function click(d) {
     });
 
     trans.selectAll("text")
-      .attrTween("transform",   function(n) { return function() { return texttransform(n); }; })
-      .attrTween("text-anchor", function(n) { return function() { return textanchor(n); }; })
-      .attrTween("dx",          function(n) { return function() { return textdx(n); }; })
-      .styleTween("font-size",  function(n) { return function() { return calcFontSize(n); }; });
+      .attrTween("transform",   function(n) { return function() { return texttransform(n, curr); }; })
+      .attrTween("text-anchor", function(n) { return function() { return textanchor(n, curr); }; })
+      .attrTween("dx",          function(n) { return function() { return textdx(n, curr); }; })
+      .styleTween("font-size",  function(n) { return function() { return calcFontSize(n, curr); }; });
 
     trans.selectAll("text")
       .delay(400)
@@ -127,76 +127,76 @@ function click(d) {
       }; });
 }
 
-var currentNode;
+function createVisualization(id, filename) {
+var svg = d3.select("#" + id).append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .append("g")
+    .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
-var svg = d3.select("body").append("svg")
-  .attr("width", width)
-  .attr("height", height)
-  .append("g")
-  .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
 
-d3.text('data/feelings_EN.txt', function(error, raw){
-  if (error) throw error;
+  d3.text(filename, function(error, raw){
+    if (error) throw error;
 
-  // replace two-space indentation with pipes
-  raw = raw.replace(new RegExp(' {2}', 'g'), '|');
+    // replace two-space indentation with pipes
+    raw = raw.replace(new RegExp(' {2}', 'g'), '|');
 
-  //read pipe-delimited data
-  var dsv = d3.dsvFormat('|');
-  var flatData = dsv.parse(raw);
-  var rData = tree(flatData);
+    //read pipe-delimited data
+    var dsv = d3.dsvFormat('|');
+    var flatData = dsv.parse(raw);
+    var rData = tree(flatData);
 
-  rData = d3.hierarchy(rData);
+    rData = d3.hierarchy(rData);
 
-  var nodes = partition(rData
-      .sum(function() { return 1; }) // each leaf gets a size of 1
-      .sort(function(a, b) { d3.ascending(a.name, b.name) }) // not working?
-    )
-    .descendants();
+    var nodes = partition(rData
+        .sum(function() { return 1; }) // each leaf gets a size of 1
+        .sort(function(a, b) { d3.ascending(a.name, b.name) }) // not working?
+      )
+      .descendants();
 
-  var g = svg.selectAll("path")
-    .data(nodes)
-    .enter().append("g");
+    var g = svg.selectAll("path")
+      .data(nodes)
+      .enter().append("g");
 
-  g.append("path")
-    .attr("d", arc)
-    .style("fill", function(d) {
-      var c;
-      if (d.depth === 0) {
-        return "white";
-      } else if (d.depth === 1) {
-        c = color((d.children ? d : d.parent).data.name);
-      } else if (d.depth > 1) {
-        c = d3.color(d.parent.data.color).darker();
-      }
-      d.data.color = c;
-      return c;
-    })
-    .on("click", click)
-    .append("title")
-    .text(function(d) { return d.data.name });
+    g.append("path")
+      .attr("d", arc)
+      .style("fill", function(d) {
+        var c;
+        if (d.depth === 0) {
+          return "white";
+        } else if (d.depth === 1) {
+          c = color((d.children ? d : d.parent).data.name);
+        } else if (d.depth > 1) {
+          c = d3.color(d.parent.data.color).darker();
+        }
+        d.data.color = c;
+        return c;
+      })
+      .on("click", function(d) { click(d, svg); })
+      .append("title")
+      .text(function(d) { return d.data.name });
 
-  g.append("text")
-    .style("fill", function(d) {
-      if (d.depth === 0) {
-        return "#CCC";
-      } else {
-        return "#FFF";
-      }})
-    .attr("class", "svglabel")
+    g.append("text")
+      .style("fill", function(d) {
+        if (d.depth === 0) {
+          return "#CCC";
+        } else {
+          return "#FFF";
+        }})
+      .attr("class", "svglabel")
 
-    .attr("transform",   texttransform)
-    .attr("text-anchor", textanchor)
-    .attr("dx",  textdx)
-    .attr("dy", ".35em") // vertical-align
-    .text(function(d) { return d.data.name; })
-    .style("font-size", function(d) {
-        // hack. save text len as property to make accessible in transiton
-        d.data.textlen = this.getComputedTextLength();
-        return calcFontSize(d);
-      });
+      .attr("transform",   texttransform)
+      .attr("text-anchor", textanchor)
+      .attr("dx",  textdx)
+      .attr("dy", ".35em") // vertical-align
+      .text(function(d) { return d.data.name; })
+      .style("font-size", function(d) {
+          // hack. save text len as property to make accessible in transiton
+          d.data.textlen = this.getComputedTextLength();
+          return calcFontSize(d);
+        });
   });
-
+}
 
 ////////// Data: flat to hierarichal //////////
 function tree(nodes) {
@@ -244,3 +244,4 @@ function tree(nodes) {
 
   return root;
 }
+
