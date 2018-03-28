@@ -220,17 +220,27 @@ function tree(nodes) {
         lev = lev+1;
         parent = curr;
 
-      } else if (d['d' + (lev-1)]) {
-        // handle moving up the hierarchy
-        lev = lev-1;
-        parent = parent.parent;
+      } else if (!d['d' + lev]) { // if not sibling
 
-      } else if (!d['d' + lev]) {
-        if (d.d2 || d.d3 || d.d4 || d.d5) {
+        // handle moving up the hierarchy
+        var p = parent.parent, handled = false;
+        for (var i = lev-1; i > 1; i--) {
+          if (d['d' + i]) {
+            lev     = i;
+            parent  = p;
+            handled = true;
+          }
+          p = p.parent;
+        }
+
+        if (!handled) {
+          if (!d.d1 && !d.d2 && !d.d3 && !d.d4 && !d.d5) {
+            // skip empty lines
+            return;
+          }
           // if it's neither child, nor moving up, nor a sibling, there is something we aren't handling
           throw "unhandled tree level";
-        } else
-          return; // skip empty lines
+        }
       }
 
       curr = {
