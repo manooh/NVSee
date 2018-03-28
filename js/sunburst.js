@@ -47,11 +47,16 @@ var texttransform = function(d) {
   );
 }
 
+var currentNode;
 function computeTextRotation(d) {
   if (d.depth === 0) {
     return 0;
   }
+
   var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
+  if(currentNode === d){
+    angle -= 90;
+  }
   return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
 }
 
@@ -92,7 +97,8 @@ function calcFontSize(d) {
 }
 
 function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
-  trans = svg.transition().duration(750);
+  var trans = svg.transition().duration(750);
+  currentNode = d;
 
   trans.selectAll("path")
     .attrTween("d", function(n) { return function() { return arc(n); }; })
