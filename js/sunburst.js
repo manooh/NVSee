@@ -1,3 +1,5 @@
+/* global d3 */
+
 // Inspiration from
 // https://bl.ocks.org/maybelinot/5552606564ef37b5de7e47ed2b7dc099
 // https://stackoverflow.com/questions/49252652/rotate-labels-in-d3-sunburst-v4
@@ -9,8 +11,6 @@
 var width = 960,
   height = 700,
   radius = (Math.min(width, height) / 2) - 10;
-
-var formatNumber = d3.format(",d");
 
 var x = d3.scaleLinear()
   .range([0, 2 * Math.PI]);
@@ -33,6 +33,20 @@ var arc = d3.arc()
   .innerRadius(function(d) { return innerRadius(d); })
   .outerRadius(function(d) { return outerRadius(d); })
 
+
+////////// Text helper functions //////////
+function computeTextRotation(d) {
+  if (d.depth === 0) {
+    return 0;
+  }
+
+  var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
+  if(currentNode === d){
+    angle -= 90;
+  }
+  return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
+}
+
 var texttransform = function(d) {
   var translation = y(d.y0);
   var rotation = computeTextRotation(d);
@@ -45,19 +59,6 @@ var texttransform = function(d) {
     "rotate(" + rotation + ")" +
     "translate(" + translation + ",0)"
   );
-}
-
-var currentNode;
-function computeTextRotation(d) {
-  if (d.depth === 0) {
-    return 0;
-  }
-
-  var angle = (x((d.x0 + d.x1)/2) - Math.PI / 2) / Math.PI * 180;
-  if(currentNode === d){
-    angle -= 90;
-  }
-  return (angle >  90 || angle < 270) ?  angle : 180 + angle ;
 }
 
 var textanchor = function(d) {
@@ -76,14 +77,8 @@ var textdx = function(d) {
   return (rotation > 90 && rotation < 270) ? -6 : 6;
 }
 
-var svg = d3.select("body").append("svg")
-  .attr("width", width)
-  .attr("height", height)
-  .append("g")
-  .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
-
 function calcFontSize(d) {
-  const xFactor = 12, yFactor = 7.5 ; // stub
+  var xFactor = 12, yFactor = 7.5 ; // stub
 
   if (d.depth === 0) {
     return "30px";
@@ -96,7 +91,9 @@ function calcFontSize(d) {
   return Math.min(innerArc / yFactor, len / d.data.textlen * xFactor) + "px";
 }
 
-function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
+
+////////// Click Transition //////////
+function click(d) {
   var trans = svg.transition().duration(750);
   currentNode = d;
 
@@ -130,11 +127,19 @@ function click(d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
       }; });
 }
 
+var currentNode;
+
+var svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height)
+  .append("g")
+  .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
+
 d3.text('data/feelings_EN.txt', function(error, raw){
   if (error) throw error;
 
   // replace two-space indentation with pipes
-  raw = raw.replace(new RegExp('  ', 'g'), '|');
+  raw = raw.replace(new RegExp(' {2}', 'g'), '|');
 
   //read pipe-delimited data
   var dsv = d3.dsvFormat('|');
@@ -144,18 +149,18 @@ d3.text('data/feelings_EN.txt', function(error, raw){
   rData = d3.hierarchy(rData);
 
   var nodes = partition(rData
-      .sum(function(d) { return 1; }) // each leaf gets a size of 1
+      .sum(function() { return 1; }) // each leaf gets a size of 1
       .sort(function(a, b) { d3.ascending(a.name, b.name) }) // not working?
     )
     .descendants();
 
-  g = svg.selectAll("path")
+  var g = svg.selectAll("path")
     .data(nodes)
     .enter().append("g");
 
-  path = g.append("path")
+  g.append("path")
     .attr("d", arc)
-    .style("fill", function(d, i) {
+    .style("fill", function(d) {
       var c;
       if (d.depth === 0) {
         return "white";
@@ -171,7 +176,7 @@ d3.text('data/feelings_EN.txt', function(error, raw){
     .append("title")
     .text(function(d) { return d.data.name });
 
-  text = g.append("text")
+  g.append("text")
     .style("fill", function(d) {
       if (d.depth === 0) {
         return "#CCC";
@@ -192,6 +197,8 @@ d3.text('data/feelings_EN.txt', function(error, raw){
       });
   });
 
+
+////////// Data: flat to hierarichal //////////
 function tree(nodes) {
   var curr, parent, root;
   var lev = 1;
