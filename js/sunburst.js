@@ -8,6 +8,8 @@
 // https://gist.github.com/denjn5/00a57e89c67906897b6eede56219170e
 // https://bl.ocks.org/mbostock/1846692
 
+var sameSizeText = true;
+
 var width = 960,
   height = 700,
   radius = (Math.min(width, height) / 2) - 10;
@@ -176,7 +178,7 @@ var svg = d3.select("#" + id).append("svg")
       .append("title")
       .text(function(d) { return d.data.name });
 
-    g.append("text")
+    var text = g.append("text")
       .style("fill", function(d) {
         if (d.depth === 0) {
           return "#CCC";
@@ -189,12 +191,25 @@ var svg = d3.select("#" + id).append("svg")
       .attr("text-anchor", textanchor)
       .attr("dx",  textdx)
       .attr("dy", ".35em") // vertical-align
-      .text(function(d) { return d.data.name; })
+      .text(function(d) {
+        if (sameSizeText && d.data.parent) {
+          // set dummy text for same-size calculation
+          return d.data.parent.longestName;
+        } else{
+          return d.data.name;
+        }
+        })
       .style("font-size", function(d) {
           // hack. save text len as property to make accessible in transiton
           d.data.textlen = this.getComputedTextLength();
           return calcFontSize(d);
         });
+    if (sameSizeText) {
+      text.text(function(d) {
+        // override dummy text
+        return d.data.name;
+      });
+    }
   });
 }
 
@@ -249,6 +264,10 @@ function tree(nodes) {
       };
       curr.parent = parent;
       parent.children.push(curr);
+      if (sameSizeText && (!parent.longestName || parent.longestName.length < curr.name.length)) {
+        // remember child with longest name
+        parent.longestName = curr.name;
+      }
     }
   });
 
