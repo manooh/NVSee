@@ -78,17 +78,17 @@ var textdx = function(d, curr) {
 }
 
 function calcFontSize(d) {
-  var xFactor = 12, yFactor = 7.5 ; // stub
+  var xFactor = 14; // stub
 
   if (d.depth === 0) {
     return "30px";
   }
 
   // use inner arc len as text height delimiter
-  var innerArc = (endAngle(d) - startAngle(d)) * 2 * Math.PI * innerRadius(d);
+  var innerArc = (endAngle(d) - startAngle(d)) * innerRadius(d);
 
-  var len = (d.y1-d.y0) * radius;
-  return Math.min(innerArc / yFactor, len / d.data.textlen * xFactor) + "px";
+  var len = y(d.y1)-y(d.y0);
+  return Math.min(innerArc, len / d.data.textlen * xFactor) + "px";
 }
 
 
@@ -114,7 +114,7 @@ function click(d, svg) {
       .attrTween("transform",   function(n) { return function() { return texttransform(n, curr); }; })
       .attrTween("text-anchor", function(n) { return function() { return textanchor(n, curr); }; })
       .attrTween("dx",          function(n) { return function() { return textdx(n, curr); }; })
-      .styleTween("font-size",  function(n) { return function() { return calcFontSize(n, curr); }; });
+      .styleTween("font-size",  function(n) { return function() { return calcFontSize(n); }; });
 
     trans.selectAll("text")
       .delay(400)
