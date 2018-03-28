@@ -8,24 +8,21 @@
 // https://gist.github.com/denjn5/00a57e89c67906897b6eede56219170e
 // https://bl.ocks.org/mbostock/1846692
 
-var sameSizeText = true;
+var sameSizeText = true; // make font the same size across siblings
 
 var width = 960,
-  height = 700,
-  radius = (Math.min(width, height) / 2) - 10;
+    height = 700,
+    radius = (Math.min(width, height) / 2) - 10;
 
-var x = d3.scaleLinear()
-  .range([0, 2 * Math.PI]);
-
-var y = d3.scaleLinear()
-  .range([0, radius]);
+var x = d3.scaleLinear().range([0, 2 * Math.PI]);
+var y = d3.scaleLinear().range([0, radius]);
 
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var partition = d3.partition();
 
 function startAngle(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x0))); }
-function endAngle(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); }
+function endAngle(d)   { return Math.max(0, Math.min(2 * Math.PI, x(d.x1))); }
 function innerRadius(d) { return Math.max(0, y(d.y0)); }
 function outerRadius(d) { return Math.max(0, y(d.y1)); }
 
@@ -130,7 +127,7 @@ function click(d, svg) {
 }
 
 function createVisualization(id, filename) {
-var svg = d3.select("#" + id).append("svg")
+  var svg = d3.select("#" + id).append("svg")
     .attr("width", width)
     .attr("height", height)
     .append("g")
